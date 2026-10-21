@@ -1,0 +1,21 @@
+{
+  "name": "@startupwinner/action",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Keyless mode: reads Stripe, App Store Connect and Google Play with keys from your GitHub secrets, and sends StartUpWinner only the results",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.ts",
+    "test": "node --test \"test/**/*.test.ts\"",
+    "typecheck": "tsc"
+  },
+  "dependencies": {
+    "@startupwinner/core": "workspace:*",
+    "yaml": "^2.9.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2"
+  }
+}

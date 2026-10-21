@@ -1,0 +1,36 @@
+name: StartUpWinner
+description: Reads Stripe, App Store Connect and Google Play with keys from your GitHub secrets and sends StartUpWinner only the results.
+author: StartUpWinner
+
+inputs:
+  token:
+    description: The project's StartUpWinner Action token (Connections → Keyless mode). It can only send results.
+    required: true
+  api-url:
+    description: Your StartUpWinner address, e.g. https://startupwinner.example
+    required: true
+  stripe-key:
+    description: A Stripe restricted key with Read only (rk_live_…). Refused if it can write.
+    required: false
+  app-store-key-id:
+    description: App Store Connect API key id. Use the Developer role, never Admin.
+    required: false
+  app-store-issuer-id:
+    description: App Store Connect issuer id.
+    required: false
+  app-store-private-key:
+    description: The .p8 file's contents.
+    required: false
+  app-store-bundle-id:
+    description: Defaults to deploy.ios.bundle_id in .startupwinner/project.yaml.
+    required: false
+  play-service-account:
+    description: The Google service account JSON key. Give it only "View app information" in Play Console.
+    required: false
+  play-package:
+    description: Defaults to deploy.android.package in .startupwinner/project.yaml.
+    required: false
+
+runs:
+  using: node24
+  main: dist/index.mjs
