@@ -7384,7 +7384,6 @@ var READS = [
 var WRITE_PROBES = [
   { path: "/customers/cus_startupwinner_probe", body: "description=probe", permission: "Customers" },
   { path: "/charges/ch_startupwinner_probe", body: "description=probe", permission: "Charges" },
-  { path: "/refunds", body: "charge=ch_startupwinner_probe", permission: "Refunds" },
   { path: "/subscriptions/sub_startupwinner_probe", body: "description=probe", permission: "Subscriptions" },
   { path: "/payment_intents/pi_startupwinner_probe", body: "description=probe", permission: "PaymentIntents" },
   { path: "/payouts/po_startupwinner_probe", body: "description=probe", permission: "Payouts" },
