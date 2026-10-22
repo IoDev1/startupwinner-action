@@ -7493,6 +7493,9 @@ async function fetchRevenue(key, now = Date.now(), fetchImpl = fetch) {
   };
 }
 
+// ../core/src/costs.ts
+var PER_MONTH2 = { month: 1, year: 1 / 12, usage: 1 };
+
 // src/app-store.ts
 import { createSign } from "node:crypto";
 var API3 = "https://api.appstoreconnect.apple.com";
