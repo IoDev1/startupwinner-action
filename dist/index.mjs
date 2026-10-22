@@ -7512,6 +7512,237 @@ async function fetchRevenue(key, now = Date.now(), fetchImpl = fetch) {
 // ../core/src/costs.ts
 var PER_MONTH2 = { month: 1, year: 1 / 12, usage: 1 };
 
+// ../core/src/launch.ts
+var lower = (s) => s.startsWith("[") ? s : s.charAt(0).toLowerCase() + s.slice(1);
+var noDot = (s) => s.replace(/\.$/, "");
+var CHANNELS = [
+  {
+    id: "product_hunt",
+    name: "Product Hunt",
+    link: "https://www.producthunt.com/posts/new",
+    bestFor: "tech-savvy early adopters, makers and investors; one big day",
+    leadDays: 14,
+    rules: [
+      "Launch days start at 12:01 a.m. Pacific Time and last 24 hours, so post right at the start.",
+      "Don't ask people to upvote; tell them you launched and ask for feedback. Vote rings get removed.",
+      "Schedule the launch from the product page ahead of time; you can be your own hunter.",
+      "Reply to every comment through the day."
+    ],
+    checklist: [
+      "Product page created and launch scheduled",
+      "Thumbnail (240\xD7240) and 3+ gallery images (1270\xD7760), first one shows the product",
+      "Demo video or GIF (YouTube or Loom link)",
+      "Maker comment ready to post the minute it goes live",
+      "A note to friends, users and your list, sent when it's live"
+    ],
+    fields: (c) => [
+      { label: "Name", text: c.name, max: 40 },
+      { label: "Tagline", text: noDot(c.tagline), max: 60 },
+      {
+        label: "Maker comment",
+        text: `Hi Product Hunt! \u{1F44B}
+
+I built ${c.name} because ${lower(noDot(c.problem))}.
+
+It's for ${lower(noDot(c.targetUser))}. ${noDot(c.differentiator)}.
+
+Pricing: ${c.pricing}.
+
+I'd love your honest feedback: what would make you use it every week?`
+      }
+    ]
+  },
+  {
+    id: "show_hn",
+    name: "Hacker News (Show HN)",
+    link: "https://news.ycombinator.com/submit",
+    bestFor: "developers and technical founders; blunt, useful feedback",
+    leadDays: 1,
+    rules: [
+      "Show HN is for something people can try now; a sign-up wall or waitlist gets flagged.",
+      "Never ask for upvotes, and don't have friends vote from the same network.",
+      "Write plainly, no marketing language; post a first comment with the backstory and how it's built.",
+      "US weekday mornings get the most eyes; stay around for a few hours to answer."
+    ],
+    checklist: ["Works without signing up (or a demo account)", "First comment ready", "Free for the next few hours to reply"],
+    fields: (c) => [
+      { label: "Title", text: `Show HN: ${c.name} \u2013 ${noDot(c.tagline)}`, max: 80 },
+      { label: "URL", text: c.url },
+      {
+        label: "First comment",
+        text: `Hi HN, I made ${c.name}. ${noDot(c.problem)}.
+
+It's for ${lower(noDot(c.targetUser))}. ${noDot(c.differentiator)}.
+
+How it works: [stack and the interesting technical part].
+
+What I'd like feedback on: [one specific question].`
+      }
+    ]
+  },
+  {
+    id: "reddit",
+    name: "Reddit",
+    link: "https://www.reddit.com/r/SideProject/submit",
+    bestFor: "the niche communities where your target users already talk",
+    leadDays: 7,
+    rules: [
+      "Every subreddit has its own self-promotion rules; read them, and the sidebar, before posting.",
+      "Communities of your target users beat founder subreddits; r/SideProject is fine for makers.",
+      "Lead with the problem and what you learned; link the product, don't pitch it.",
+      "Post from an account that already takes part there; brand-new accounts get filtered."
+    ],
+    checklist: ["3 subreddits picked, rules read", "A post written for each one, not one copy pasted three times"],
+    fields: (c) => [
+      { label: "Title", text: `I built ${c.name} because ${lower(noDot(c.problem))}`, max: 300 },
+      {
+        label: "Post",
+        text: `${noDot(c.problem)}. I kept running into it, so I built ${c.name}.
+
+Who it's for: ${lower(noDot(c.targetUser))}.
+What's different: ${lower(noDot(c.differentiator))}.
+
+It's ${lower(c.pricing)}. Link: ${c.url}
+
+I'd really like to hear what's missing or confusing.`
+      }
+    ]
+  },
+  {
+    id: "x",
+    name: "X (launch thread)",
+    link: "https://x.com/compose/post",
+    bestFor: "your own followers and the build-in-public crowd",
+    leadDays: 3,
+    rules: [
+      "Put the video or GIF in the first post; links in the first post get less reach, so link in a reply.",
+      "Pin the thread for launch week."
+    ],
+    checklist: ["Video or GIF", "Thread drafted", "Pinned after posting"],
+    fields: (c) => [
+      { label: "Post 1", text: `Today I'm launching ${c.name} \u{1F680}
+
+${noDot(c.tagline)}.
+
+\u{1F9F5}`, max: 280 },
+      { label: "Post 2", text: `The problem: ${lower(noDot(c.problem))}.`, max: 280 },
+      { label: "Post 3", text: `${c.name} is for ${lower(noDot(c.targetUser))}. ${noDot(c.differentiator)}.`, max: 280 },
+      { label: "Post 4", text: `Try it: ${c.url}
+
+${c.pricing}. Feedback very welcome \u{1F64F}`, max: 280 }
+    ]
+  },
+  {
+    id: "linkedin",
+    name: "LinkedIn",
+    link: "https://www.linkedin.com/feed/",
+    bestFor: "B2B products and your professional network",
+    leadDays: 1,
+    rules: ["Tell the story in the post itself; put the link in the first comment."],
+    checklist: ["Post written", "Link in the first comment"],
+    fields: (c) => [
+      {
+        label: "Post",
+        text: `After [time] of building, ${c.name} is live.
+
+${noDot(c.problem)}. ${c.name} fixes that for ${lower(noDot(c.targetUser))}.
+
+${noDot(c.differentiator)}.
+
+Link in the comments. I'd be grateful for feedback, or a share with someone who has this problem.`,
+        max: 3e3
+      }
+    ]
+  },
+  {
+    id: "indie_hackers",
+    name: "Indie Hackers",
+    link: "https://www.indiehackers.com/",
+    bestFor: "other founders; good for the story and the numbers",
+    leadDays: 1,
+    rules: ["Share what you learned and real numbers; pure announcements get little attention."],
+    checklist: ["Post with the story and the first numbers"],
+    fields: (c) => [
+      { label: "Title", text: `Launching ${c.name} today: what I learned building it` },
+      {
+        label: "Post",
+        text: `${noDot(c.problem)}, so I built ${c.name} for ${lower(noDot(c.targetUser))}.
+
+What worked: [1\u20133 points]
+What didn't: [1\u20133 points]
+Numbers so far: [waitlist, users, revenue]
+
+${c.url}`
+      }
+    ]
+  },
+  {
+    id: "directories",
+    name: "Directories",
+    link: "https://betalist.com/submit",
+    bestFor: "steady trickle of visitors and backlinks after launch",
+    leadDays: 21,
+    rules: [
+      "Some directories review submissions for weeks (BetaList is the known slow one): submit 3 weeks ahead.",
+      "Others list you the same day; do those in launch week.",
+      "Many offer paid fast-tracks; the free queue is fine if you start early."
+    ],
+    checklist: [
+      "BetaList (pre-launch, slow review)",
+      "Same-day launch sites in launch week, for example Uneed, Microlaunch, Peerlist Launchpad",
+      "Alternative-to sites (AlternativeTo, SaaSHub) listing you next to the competitors on the Market tab"
+    ],
+    fields: (c) => [
+      { label: "One-liner", text: noDot(c.tagline), max: 60 },
+      { label: "Description", text: `${noDot(c.problem)}. ${c.name} helps ${lower(noDot(c.targetUser))}. ${noDot(c.differentiator)}. ${c.pricing}.`, max: 500 }
+    ]
+  },
+  {
+    id: "newsletter",
+    name: "Your email list",
+    link: "",
+    bestFor: "waitlist and early users: the warmest audience you have",
+    leadDays: 1,
+    rules: ["Send it when the other launches are live, so people can find you there too."],
+    checklist: ["Waitlist exported", "Email sent on launch day"],
+    fields: (c) => [
+      { label: "Subject", text: `${c.name} is live`, max: 60 },
+      {
+        label: "Email",
+        text: `Hi,
+
+You asked to hear when ${c.name} launched: it's live today. ${c.url}
+
+${noDot(c.tagline)}.
+
+As one of the first people, your feedback shapes what comes next; just reply to this email.
+
+Thanks,
+[name]`
+      }
+    ]
+  },
+  {
+    id: "app_stores",
+    name: "App Store and Google Play",
+    link: "https://appstoreconnect.apple.com/",
+    bestFor: "people searching the stores; your listing is the launch",
+    leadDays: 7,
+    mobileOnly: true,
+    rules: [
+      "The name and subtitle (App Store) and short description (Play) carry most of the search weight.",
+      "Promotional text can change without a new review; use it for launch news."
+    ],
+    checklist: ["Screenshots per device size", "Subtitle and keywords", "Promotional text for launch week"],
+    fields: (c) => [
+      { label: "App Store subtitle", text: noDot(c.tagline), max: 30 },
+      { label: "App Store promotional text", text: `New: ${noDot(c.tagline)}. ${noDot(c.differentiator)}.`, max: 170 },
+      { label: "Play short description", text: noDot(c.tagline), max: 80 }
+    ]
+  }
+];
+var byId = new Map(CHANNELS.map((c) => [c.id, c]));
+
 // src/app-store.ts
 import { createSign } from "node:crypto";
 var API3 = "https://api.appstoreconnect.apple.com";
