@@ -7460,6 +7460,21 @@ function sumTransactions(transactions) {
   }
   return totals;
 }
+var DAY = 864e5;
+function dailyNet(transactions, now, days = 30) {
+  const today = Math.floor(now / DAY);
+  const out = Array.from({ length: days }, (_, i) => ({
+    date: new Date((today - days + 1 + i) * DAY).toISOString().slice(0, 10),
+    net: {}
+  }));
+  for (const t of transactions) {
+    if (!INCOME.has(t.type) && !REFUND.has(t.type)) continue;
+    const index = Math.floor(t.created * 1e3 / DAY) - (today - days + 1);
+    if (index < 0 || index >= days) continue;
+    out[index].net[t.currency] = (out[index].net[t.currency] ?? 0) + t.net;
+  }
+  return out;
+}
 var PER_MONTH = { day: 365 / 12, week: 52 / 12, month: 1, year: 1 / 12 };
 function monthlyRecurring(subscriptions) {
   const mrr = {};
@@ -7489,7 +7504,8 @@ async function fetchRevenue(key, now = Date.now(), fetchImpl = fetch) {
     activeSubscriptions: subscriptions.items.length,
     // Stripe lists newest first, so a single charge only proves at least one exists.
     firstChargeAt: first.data[0] ? new Date(first.data[0].created * 1e3).toISOString() : null,
-    truncated: month.truncated || subscriptions.truncated
+    truncated: month.truncated || subscriptions.truncated,
+    daily: dailyNet(month.items, now)
   };
 }
 
