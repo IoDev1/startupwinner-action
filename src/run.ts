@@ -1,4 +1,4 @@
-import { checkStripeKey, fetchRevenue } from "@startupwinner/core";
+import { checkStripeKey, fetchRevenue, fetchRevenueCat } from "@startupwinner/core";
 import type { IngestPayload, Project, Revenue } from "@startupwinner/core";
 import { createAppStoreJwt, fetchAppStoreStatus } from "./app-store.ts";
 import { fetchPlayStatus, googleAccessToken, parseServiceAccount } from "./play.ts";
@@ -6,7 +6,7 @@ import { fetchPlayStatus, googleAccessToken, parseServiceAccount } from "./play.
 // Collects results from each configured source and builds the report. Keys are used
 // here, inside the person's own GitHub runner, and never leave it (D16, D17).
 
-export const ACTION_VERSION = "1.0.0";
+export const ACTION_VERSION = "1.1.0";
 
 export interface Inputs {
   stripeKey?: string;
@@ -16,6 +16,9 @@ export interface Inputs {
   appStoreBundleId?: string;
   playServiceAccount?: string;
   playPackage?: string;
+  revenueCatKey?: string;
+  revenueCatProjectId?: string;
+  revenueCatCurrency?: string;
 }
 
 const message = (error: unknown) => (error instanceof Error ? error.message : String(error)).slice(0, 500);
@@ -59,6 +62,17 @@ export async function collect(inputs: Inputs, manifest: Partial<Project> | null,
       log.push(`Google Play: ${report.play.tracks.length} tracks`);
     } catch (error) {
       errors.play = message(error);
+    }
+  }
+
+  if (inputs.revenueCatKey || inputs.revenueCatProjectId) {
+    try {
+      if (!inputs.revenueCatKey || !inputs.revenueCatProjectId) throw new Error("RevenueCat needs both revenuecat-key and revenuecat-project-id");
+      const currency = /^[A-Z]{3}$/.test(inputs.revenueCatCurrency ?? "") ? inputs.revenueCatCurrency! : "USD";
+      report.revenuecat = await fetchRevenueCat(inputs.revenueCatKey, inputs.revenueCatProjectId, fetchImpl, currency);
+      log.push(`RevenueCat: ${report.revenuecat.metrics.length} metrics (${report.revenuecat.currency})`);
+    } catch (error) {
+      errors.revenuecat = message(error);
     }
   }
 

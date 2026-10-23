@@ -31,6 +31,9 @@ try {
       appStoreBundleId: input("app-store-bundle-id"),
       playServiceAccount: input("play-service-account"),
       playPackage: input("play-package"),
+      revenueCatKey: input("revenuecat-key"),
+      revenueCatProjectId: input("revenuecat-project-id"),
+      revenueCatCurrency: input("revenuecat-currency"),
     },
     await manifest(),
   );

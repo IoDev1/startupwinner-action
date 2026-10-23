@@ -1,5 +1,5 @@
 name: StartUpWinner
-description: Reads Stripe, App Store Connect and Google Play with keys from your GitHub secrets and sends StartUpWinner only the results.
+description: Reads Stripe, App Store Connect, Google Play and RevenueCat with keys from your GitHub secrets and sends StartUpWinner only the results.
 author: StartUpWinner
 
 inputs:
@@ -29,6 +29,15 @@ inputs:
     required: false
   play-package:
     description: Defaults to deploy.android.package in .startupwinner/project.yaml.
+    required: false
+  revenuecat-key:
+    description: A RevenueCat v2 secret key with only charts_metrics:overview:read (mobile revenue).
+    required: false
+  revenuecat-project-id:
+    description: The RevenueCat project id (Project settings).
+    required: false
+  revenuecat-currency:
+    description: Currency for the revenue numbers (USD, EUR, GBP…). Defaults to USD.
     required: false
 
 runs:

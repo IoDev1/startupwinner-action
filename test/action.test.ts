@@ -94,7 +94,7 @@ test("collect: each source fails on its own, half-configured sources are reporte
   assert.ok(!JSON.stringify(report).includes("sk_live_full_key"));
 
   const { report: empty } = await collect({}, null, (async () => json({})) as unknown as typeof fetch);
-  assert.deepEqual(empty, { action_version: "1.0.0" });
+  assert.deepEqual(empty, { action_version: "1.1.0" });
 });
 
 test("send: https only (or localhost), bearer token, failures are errors", async () => {
@@ -127,7 +127,7 @@ test("the built dist/index.mjs runs like GitHub runs it and posts a report", asy
     });
     assert.match(stdout, /Sent the results/);
     assert.equal(received.auth, "Bearer swi_test");
-    assert.deepEqual(received.body, { action_version: "1.0.0" });
+    assert.deepEqual(received.body, { action_version: "1.1.0" });
   } finally {
     server.close();
   }
@@ -140,4 +140,14 @@ test("dist/index.mjs is built from the current source (run `pnpm build` if not)"
   const fresh = await build({ ...options, write: false });
   const committed = await readFile(new URL("../dist/index.mjs", import.meta.url), "utf8");
   assert.equal(fresh.outputFiles[0].text, committed);
+});
+
+test("RevenueCat: both inputs needed; results land in the report, keys never do", async () => {
+  const half = await collect({ revenueCatKey: "sk_rc" }, null, (async () => new Response("{}")) as unknown as typeof fetch);
+  assert.match(half.report.errors?.revenuecat ?? "", /needs both/);
+  const fake = (async () =>
+    new Response(JSON.stringify({ currency: "EUR", metrics: [{ id: "mrr", name: "MRR", unit: "€", period: "P28D", value: 99 }] }))) as unknown as typeof fetch;
+  const { report } = await collect({ revenueCatKey: "sk_rc_secret", revenueCatProjectId: "proj1", revenueCatCurrency: "EUR" }, null, fake);
+  assert.deepEqual(report.revenuecat, { currency: "EUR", metrics: [{ id: "mrr", name: "MRR", unit: "€", period: "P28D", value: 99 }] });
+  assert.ok(!JSON.stringify(report).includes("sk_rc_secret"));
 });

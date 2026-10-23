@@ -7743,9 +7743,26 @@ Thanks,
 ];
 var byId = new Map(CHANNELS.map((c) => [c.id, c]));
 
+// ../core/src/revenuecat.ts
+var API3 = "https://api.revenuecat.com/v2";
+async function fetchRevenueCat(key, projectId, fetchImpl = fetch, currency = "USD") {
+  if (!/^[A-Za-z0-9_-]{1,100}$/.test(projectId)) throw new Error("revenuecat-project-id doesn't look like a project id (RevenueCat \u2192 Project settings)");
+  const res = await fetchImpl(`${API3}/projects/${projectId}/metrics/overview?currency=${encodeURIComponent(currency)}`, {
+    headers: { Authorization: `Bearer ${key.trim()}`, Accept: "application/json" }
+  });
+  if (res.status === 401 || res.status === 403) throw new Error(`RevenueCat refused the key (${res.status}): use a v2 secret key with charts_metrics:overview:read`);
+  if (!res.ok) throw new Error(`RevenueCat answered ${res.status}`);
+  const body = await res.json();
+  const metrics = (body.metrics ?? []).flatMap((m) => {
+    const x = m;
+    return typeof x.id === "string" && typeof x.value === "number" && Number.isFinite(x.value) ? [{ id: x.id.slice(0, 64), name: String(x.name ?? x.id).slice(0, 80), unit: String(x.unit ?? "").slice(0, 8), period: String(x.period ?? "").slice(0, 8), value: x.value }] : [];
+  });
+  return { currency: typeof body.currency === "string" ? body.currency : currency, metrics: metrics.slice(0, 20) };
+}
+
 // src/app-store.ts
 import { createSign } from "node:crypto";
-var API3 = "https://api.appstoreconnect.apple.com";
+var API4 = "https://api.appstoreconnect.apple.com";
 function createAppStoreJwt(keyId, issuerId, privateKeyPem, nowSeconds = Math.floor(Date.now() / 1e3)) {
   const b64 = (o) => Buffer.from(JSON.stringify(o)).toString("base64url");
   const header = b64({ alg: "ES256", kid: keyId, typ: "JWT" });
@@ -7754,7 +7771,7 @@ function createAppStoreJwt(keyId, issuerId, privateKeyPem, nowSeconds = Math.flo
   return `${header}.${payload}.${signature}`;
 }
 async function get(jwt, path, fetchImpl) {
-  const res = await fetchImpl(`${API3}${path}`, { headers: { Authorization: `Bearer ${jwt}` } });
+  const res = await fetchImpl(`${API4}${path}`, { headers: { Authorization: `Bearer ${jwt}` } });
   if (res.status === 401) throw new Error("App Store Connect refused the key (check key id, issuer id and the .p8 file)");
   if (res.status === 403) throw new Error("the App Store Connect key's role can't read this (use the Developer role)");
   if (!res.ok) throw new Error(`App Store Connect ${path.split("?")[0]} failed (${res.status})`);
@@ -7795,7 +7812,7 @@ async function fetchAppStoreStatus(jwt, bundleId, fetchImpl = fetch) {
 // src/play.ts
 import { createSign as createSign2 } from "node:crypto";
 var SCOPE = "https://www.googleapis.com/auth/androidpublisher";
-var API4 = "https://androidpublisher.googleapis.com/androidpublisher/v3/applications";
+var API5 = "https://androidpublisher.googleapis.com/androidpublisher/v3/applications";
 function parseServiceAccount(json) {
   let account;
   try {
@@ -7827,7 +7844,7 @@ async function googleAccessToken(account, fetchImpl = fetch, nowSeconds = Math.f
 }
 async function fetchPlayStatus(accessToken, packageName, fetchImpl = fetch) {
   const headers = { Authorization: `Bearer ${accessToken}` };
-  const base = `${API4}/${encodeURIComponent(packageName)}/edits`;
+  const base = `${API5}/${encodeURIComponent(packageName)}/edits`;
   const opened = await fetchImpl(base, { method: "POST", headers });
   if (opened.status === 403) throw new Error("the service account has no access to this app in Play Console (add it under Users and permissions)");
   if (opened.status === 404) throw new Error(`no app ${packageName} in Play Console`);
@@ -7850,7 +7867,7 @@ async function fetchPlayStatus(accessToken, packageName, fetchImpl = fetch) {
 }
 
 // src/run.ts
-var ACTION_VERSION = "1.0.0";
+var ACTION_VERSION = "1.1.0";
 var message = (error) => (error instanceof Error ? error.message : String(error)).slice(0, 500);
 async function collect(inputs, manifest2, fetchImpl = fetch) {
   const report = { action_version: ACTION_VERSION, errors: {} };
@@ -7890,6 +7907,16 @@ async function collect(inputs, manifest2, fetchImpl = fetch) {
       errors.play = message(error);
     }
   }
+  if (inputs.revenueCatKey || inputs.revenueCatProjectId) {
+    try {
+      if (!inputs.revenueCatKey || !inputs.revenueCatProjectId) throw new Error("RevenueCat needs both revenuecat-key and revenuecat-project-id");
+      const currency = /^[A-Z]{3}$/.test(inputs.revenueCatCurrency ?? "") ? inputs.revenueCatCurrency : "USD";
+      report.revenuecat = await fetchRevenueCat(inputs.revenueCatKey, inputs.revenueCatProjectId, fetchImpl, currency);
+      log.push(`RevenueCat: ${report.revenuecat.metrics.length} metrics (${report.revenuecat.currency})`);
+    } catch (error) {
+      errors.revenuecat = message(error);
+    }
+  }
   if (!Object.keys(errors).length) delete report.errors;
   return { report, log };
 }
@@ -7926,7 +7953,10 @@ try {
       appStorePrivateKey: input("app-store-private-key"),
       appStoreBundleId: input("app-store-bundle-id"),
       playServiceAccount: input("play-service-account"),
-      playPackage: input("play-package")
+      playPackage: input("play-package"),
+      revenueCatKey: input("revenuecat-key"),
+      revenueCatProjectId: input("revenuecat-project-id"),
+      revenueCatCurrency: input("revenuecat-currency")
     },
     await manifest()
   );
